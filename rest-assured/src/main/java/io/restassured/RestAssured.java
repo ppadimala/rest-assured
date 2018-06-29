@@ -249,7 +249,7 @@ import static io.restassured.specification.ProxySpecification.host;
  *            String xml = post("/greetXML?firstName=John&lastName=Doe").andReturn().asString();
  *            // Now use XmlPath to get the first and last name
  *            String firstName = with(xml).get("greeting.firstName");
- *            String lastName = with(xml).get("greeting.firstName");
+ *            String lastName = with(xml).get("greeting.lastName");
  *
  *            // or a bit more efficiently:
  *            XmlPath xmlPath = new XmlPath(xml).setRoot("greeting");
@@ -1230,6 +1230,24 @@ public class RestAssured {
     }
 
     /**
+     * Create a NTLM authentication scheme.
+     *
+     * @param userName The user name.
+     * @param password The password.
+     * @param workstation The NTLM workstation.
+     * @param domain The NTLM workstation.
+     * @return The authentication scheme
+     */
+    public static AuthenticationScheme ntlm(String userName, String password, String workstation, String domain) {
+        final NTLMAuthScheme scheme = new NTLMAuthScheme();
+        scheme.setUserName(userName);
+        scheme.setPassword(password);
+        scheme.setWorkstation(workstation);
+        scheme.setDomain(domain);
+        return scheme;
+    }
+
+    /**
      * Use form authentication. Rest Assured will try to parse the response
      * login page and determine and try find the action, username and password input
      * field automatically.
@@ -1409,9 +1427,9 @@ public class RestAssured {
      * @return The authentication scheme
      */
     public static AuthenticationScheme oauth2(String accessToken) {
-        OAuth2Scheme scheme = new OAuth2Scheme();
-        scheme.setAccessToken(accessToken);
-        return scheme;
+        PreemptiveOAuth2HeaderScheme myScheme = new PreemptiveOAuth2HeaderScheme();
+        myScheme.setAccessToken(accessToken);
+        return myScheme;
     }
 
     /**

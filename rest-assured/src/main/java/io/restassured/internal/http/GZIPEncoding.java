@@ -16,11 +16,11 @@
 
 package io.restassured.internal.http;
 
+import io.restassured.internal.util.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.HttpEntityWrapper;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -29,33 +29,33 @@ import java.util.zip.GZIPInputStream;
  */
 public class GZIPEncoding extends ContentEncoding {
 
-	/**
-	 * Returns the {@link ContentEncoding.Type#GZIP} encoding string which is 
-	 * added to the <code>Accept-Encoding</code> header by the base class.
-	 */
-	@Override
-	public String getContentEncoding() {
-		return Type.GZIP.toString();
-	}
-	
-	/**
-	 * Wraps the raw entity in a {@link GZIPDecompressingEntity}.
-	 */
-	@Override
-	public HttpEntity wrapResponseEntity( HttpEntity raw ) {
-		return new GZIPDecompressingEntity( raw );
-	}
-	
-	/**
-	 * Entity used to interpret a GZIP-encoded response
-	 * @author <a href='mailto:tomstrummer+httpbuilder@gmail.com'>Tom Nichols</a>
-	 */
+    /**
+     * Returns the {@link ContentEncoding.Type#GZIP} encoding string which is
+     * added to the <code>Accept-Encoding</code> header by the base class.
+     */
+    @Override
+    public String getContentEncoding() {
+        return Type.GZIP.toString();
+    }
+
+    /**
+     * Wraps the raw entity in a {@link GZIPDecompressingEntity}.
+     */
+    @Override
+    public HttpEntity wrapResponseEntity(HttpEntity raw) {
+        return new GZIPDecompressingEntity(raw);
+    }
+
+    /**
+     * Entity used to interpret a GZIP-encoded response
+     * @author <a href='mailto:tomstrummer+httpbuilder@gmail.com'>Tom Nichols</a>
+     */
     protected static class GZIPDecompressingEntity extends HttpEntityWrapper {
 
         public GZIPDecompressingEntity(final HttpEntity entity) {
             super(entity);
         }
-    
+
         /**
          * returns a {@link GZIPInputStream} which wraps the original entity's
          * content stream
@@ -63,7 +63,14 @@ public class GZIPEncoding extends ContentEncoding {
          */
         @Override
         public InputStream getContent() throws IOException, IllegalStateException {
-            return new GZIPInputStream( wrappedEntity.getContent() );
+            InputStream content = wrappedEntity.getContent();
+            byte[] bytes = IOUtils.toByteArray(content);
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+            if (bytes.length > 0) {
+                return new GZIPInputStream(inputStream);
+            } else {
+                return inputStream;
+            }
         }
 
         /**

@@ -19,20 +19,19 @@ package io.restassured.internal.http;
 import com.github.scribejava.core.builder.api.DefaultApi10a;
 import com.github.scribejava.core.builder.api.DefaultApi20;
 import com.github.scribejava.core.model.*;
-import com.github.scribejava.core.model.OAuthConfig;
 import com.github.scribejava.core.oauth.OAuth10aService;
 import com.github.scribejava.core.oauth.OAuth20Service;
 import com.github.scribejava.core.oauth.OAuthService;
 import io.restassured.authentication.OAuthSignature;
 import io.restassured.internal.TrustAndKeystoreSpecImpl;
-import org.apache.http.HttpException;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpRequestInterceptor;
+import org.apache.http.*;
 import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.NTCredentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.impl.client.EntityEnclosingRequestWrapper;
 import org.apache.http.impl.client.RequestWrapper;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
@@ -41,6 +40,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.KeyStore;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -87,6 +87,35 @@ public class AuthConfig {
         builder.getClient().getCredentialsProvider().setCredentials(
                 new AuthScope(host, port),
                 new UsernamePasswordCredentials(user, pass)
+        );
+    }
+
+    /**
+     * Set NTLM authentication credentials to be used for the current
+     * {@link HTTPBuilder#getUri() default host}.
+     *
+     * @param user
+     * @param pass
+     */
+    public void ntlm(String user, String pass, String workstation, String domain) {
+        URI uri = ((URIBuilder) builder.getUri()).toURI();
+        if (uri == null) throw new IllegalStateException("a default URI must be set");
+        this.ntlm(uri.getHost(), uri.getPort(), user, pass,workstation,domain);
+    }
+    /**
+     * Set NTLM authentication credentials to be used for the given host and port.
+     *
+     * @param host
+     * @param port
+     * @param user
+     * @param pass
+     * @param workstation
+     * @param domain
+     */
+    public void ntlm(String host, int port, String user, String pass, String workstation, String domain) {
+        builder.getClient().getCredentialsProvider().setCredentials(
+                new AuthScope(host, port),
+                new NTCredentials(user, pass, workstation, domain)
         );
     }
 
@@ -229,6 +258,18 @@ public class AuthConfig {
                 Verb verb = Verb.valueOf(request.getRequestLine().getMethod().toUpperCase());
                 OAuthRequest oauthRequest = new OAuthRequest(verb, requestURI.toString(), null);
                 this.service = (OAuth10aService) getOauthService(isOAuth1, addEmptyTokenToBaseString);
+
+                if (request instanceof EntityEnclosingRequestWrapper) {
+                    HttpEntity entity = ((EntityEnclosingRequestWrapper) request).getEntity();
+                    if (entity != null) {
+                        List<NameValuePair> params = URLEncodedUtils.parse(entity);
+                        for (NameValuePair param : params) {
+                            String value = param.getValue() == null ? "" : param.getValue();
+                            oauthRequest.addBodyParameter(param.getName(), value);
+                        }
+                    }
+                }
+
                 service.signRequest((OAuth1AccessToken) token, oauthRequest);
 
                 if (signature == OAuthSignature.HEADER) {

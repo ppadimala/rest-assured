@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-
-
 package io.restassured.assertion
 
 import io.restassured.http.Cookie
 import io.restassured.http.Cookies
 import org.apache.commons.lang3.StringUtils
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 import org.apache.http.client.utils.DateUtils
 import org.hamcrest.Matcher
 import org.hamcrest.StringDescription
@@ -30,20 +30,28 @@ import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase
 import static org.apache.commons.lang3.StringUtils.trim
 
 class CookieMatcher {
+    private static final Log log = LogFactory.getLog(CookieMatcher.class)
 
     def cookieName
-    def Matcher<String> matcher
+    Matcher<String> matcher
 
-
-
-    def validateCookie(List<String> cookies) {
+    def validateCookies(List<String> headerWithCookieList, Cookies responseCookies) {
         def success = true
         def errorMessage = ""
-        if(!cookies) {
+        if(!headerWithCookieList && !responseCookies.exist()) {
             success = false
             errorMessage = "No cookies defined in the response\n"
         } else {
-            def raCookies = getCookies(cookies)
+            Cookies cookiesInHeader = getCookies(headerWithCookieList)
+            List<Cookie> mergedCookies = []
+            mergedCookies += cookiesInHeader
+            for (Cookie responseCookie: responseCookies) {
+                if (!cookiesInHeader.hasCookieWithName(responseCookie.getName())) {
+                    mergedCookies << responseCookie
+                }
+            }
+
+            def raCookies = new Cookies(mergedCookies)
             def cookie = raCookies.get(cookieName)
             if (cookie == null) {
                 String cookiesAsString = raCookies.toString()
@@ -63,28 +71,28 @@ class CookieMatcher {
         [success: success, errorMessage: errorMessage]
     }
 
-    public static String getExpectedDescription(Matcher matcher) {
+    static String getExpectedDescription(Matcher matcher) {
         def expectedDescription = new StringDescription()
         matcher.describeTo(expectedDescription)
         return expectedDescription.toString()
     }
 
-    public static String getMismatchDescription(Matcher matcher, value) {
+    static String getMismatchDescription(Matcher matcher, value) {
         def mismatchDescription = new StringDescription()
         matcher.describeMismatch(value, mismatchDescription)
         return mismatchDescription.toString()
     }
 
-    public static Cookies getCookies(headerWithCookieList) {
+    static Cookies getCookies(headerWithCookieList) {
         def cookieList = []
         headerWithCookieList.each {
-            def Cookie.Builder cookieBuilder
-            def cookieStrings = StringUtils.split(it, ";");
+            Cookie.Builder cookieBuilder
+            def cookieStrings = StringUtils.split(it, ";")
             cookieStrings.eachWithIndex { part, index ->
                 if(index == 0) {
                     if(part.contains("=")) {
                         def (cookieKey, cookieValue) = getKeyAndValueOfCookie(part)
-                        cookieBuilder = new Cookie.Builder(cookieKey, cookieValue);
+                        cookieBuilder = new Cookie.Builder(cookieKey, cookieValue)
                     } else {
                         cookieBuilder = new Cookie.Builder(part, null)
                     }
@@ -104,7 +112,7 @@ class CookieMatcher {
         def indexOfEqual = StringUtils.indexOf(part, "=")
         def cookieKey, cookieValue
         if(indexOfEqual > -1) {
-            cookieKey = StringUtils.substring(part, 0, indexOfEqual);
+            cookieKey = StringUtils.substring(part, 0, indexOfEqual)
             cookieValue = StringUtils.substring(part, indexOfEqual + 1)
         } else {
             cookieKey = part
@@ -114,7 +122,7 @@ class CookieMatcher {
     }
 
     private static def setCookieProperty(Cookie.Builder builder, name, value) {
-        name = trim(name);
+        name = trim(name)
         if(value != null || equalsIgnoreCase(name, SECURE) || equalsIgnoreCase(name, HTTP_ONLY)) {
             if(equalsIgnoreCase(name, COMMENT)) {
                 builder.setComment(value)
@@ -135,10 +143,14 @@ class CookieMatcher {
             } else if(equalsIgnoreCase(name, HTTP_ONLY)) {
                 builder.setHttpOnly(true)
             } else if(equalsIgnoreCase(name, EXPIRES)) {
-                builder.setExpiryDate(DateUtils.parseDate(value))
+              value = trim(StringUtils.remove(value, "\""))
+              Date parsedDate = DateUtils.parseDate(value)
+              if (parsedDate != null) {
+                builder.setExpiryDate(parsedDate)
+              } else {
+                log.warn("Ignoring unparsable 'Expires' attribute value: " + value)
+              }
             }
         }
     }
-
-
 }

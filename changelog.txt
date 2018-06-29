@@ -1,5 +1,102 @@
 Change log next version
 -----------------------
+* Ensure RequestSpecBuilder picks up static config (issue 1012). (thanks to Peter Major for pull request)
+* Support multiple 'Set-Cookie' headers in a response (issue 1016). (thanks to runtarinn for pull request)
+* Fixed OAuth 1 for GET requests (thanks to Corneliu Duplachi for pull request)
+* Add detailed cookie matching to RequestSpecBuilder (thanks to Peter Major for pull request)
+
+Change log 3.1.0 (2018-04-20)
+-----------------------------
+* Fixed generics handling of the detailed cookie matcher (thanks to Rafał Siwiec for pull request)
+* Now using Type instead of Class in the API for mapping to Java Objects. For users of the REST Assured API the change is most prominent in the
+  "ResponseBodyExtractionOptions" interface where the "as" method now takes a "java.lang.Type" instead of "java.lang.Class". This should not cause
+  any backward incompatibilities. However this change also applies to ObjectMapperFactory's where there is a chance of backward incompatibilities
+  to arise. For example if you previously had a custom JAXBObjectMapperFactory that looked like this:
+
+     public class MyJAXBObjectMapperFactory implements JAXBObjectMapperFactory {
+        public JAXBContext create(Class cls, String charset) {
+            ...
+        }
+     }
+
+  you now need to change it to:
+
+    public class MyJAXBObjectMapperFactory implements JAXBObjectMapperFactory {
+        public JAXBContext create(Type cls, String charset) {
+            ...
+        }
+   }
+
+  (note the change from Class to Type). This was needed for swagger integration (issue 980). (thanks to Victor Orlovsky for pull request)
+* Add better integration for standard HTTP methods with Apache HttpClient which also solves an issue content-type header being generated for empty GET requests (issue 974) (thanks to Daniel Dyląg for pull request)
+* No longer using DEF_CONTENT_CHARSET from Apache HttpClient since it caused compatibility issues (issue 757)
+* Fix for #979 Removing Authorization header when setting auth().none() (issue 979) (thanks to jovanovicivan for pull request)
+* Fixed so that header equals is case-insensitive (issue 999) (thanks to Todd Bradley for pull request)
+* Allow querying (extracting values out of) a request specification using the io.restassured.specification.SpecificationQuerier. For example:
+    RequestSpecification spec = ...
+    QueryableRequestSpecification queryable = SpecificationQuerier.query(spec);
+    String headerValue = queryable.getHeaders().getValue("header");
+    String param = queryable.getFormParams().get("someparam");
+* Fixed so that it's possible to specify arguments to root paths in multi expectation blocks such as:
+        get("/jsonStore").then()
+            .root("store.book.find { it.author == '%s' }.price")
+            .body(
+                    withArgs("Nigel Rees"), is(8.95f),
+                    withArgs("Evelyn Waugh"), is(12.99f),
+                    withArgs("Herman Melville"), is(8.99f),
+                    withArgs("J. R. R. Tolkien"), is(22.99f)
+            );
+* It's now possible to automatically include additional input fields when using form authentication. Just use the FormAuthConfig and specify the additional values to include using:
+    given().auth().form("username", "password", formAuthConfig().withAdditionalFields("firstInputField", "secondInputField"). ..
+  REST Assured will automatically parse the HTML page, find the values for the additional fields and include them as form parameters in the login request.
+
+Change log 3.0.7 (2018-02-09)
+-----------------------------
+* CookieFilter now conforms to RFC6265 standard by only copying expected cookies instead of all (thanks to Maciej Ciszewski for pull request) (issue 956).
+* Prettifier can now prettify empty xml body (issue 960)
+* Introduced a "detailed cookie matcher" that allows you to verify more detailed aspects of a cookie, for example:
+    given().
+        get("/multiCookie").
+    then()
+        cookie("cookie1", detailedCookie().maxAge(1234567));
+  (thanks to Rafał Siwiec for pull request)
+
+Change log 3.0.6 (2017-11-23)
+-----------------------------
+* Upgraded to Groovy 2.4.12
+* REST Assured now works on Java 9
+
+Change log 3.0.5 (2017-10-05)
+-----------------------------
+* Reverted the API to take String instead of CharSequence again since this change introduced an accidental breaking change by not being binary compatible (only source compatible).
+
+Change log 3.0.4 (2017-10-05)
+-----------------------------
+* Changed API to take CharSequence instead of String. For example the "get" method in when().get("/something").. now takes a CharSequence instead of String (issue 858) (thanks to weaselmetal for pull request)
+* Fixed so that assertions on content type with a ContentType.BINARY argument don't fail for binary content (issue 861) (thanks to Grégory Fouquet for pull request)
+* Fixed an issue with two-way SSL whose root cause was Apache HTTP Client v4.5.2. Upgrading to 4.5.3 solved the issue (thanks to Ryan Tighe for pull request)
+* Added support for ntlm authentication (issue 869) (thanks to Pawel Cesar Sanjuan Szklarz for pull request)
+* Better support for empty GZIP responses (thanks to Sergey Trasko for pull request)
+* Treat text/json as JSON content type (thanks to Ionuț Păduraru for pull request)
+* RestAssured.oauth2("accessToken") now uses PreemptiveOAuth2HeaderScheme instead of OAuth2Scheme
+* Added body params in OAuthRequest (issue 868) (thanks to Corneliu Duplachi for pull request)
+* Set authentication once to set in SecurityContextHolder and Principal in method parameter in the MockMvc module (thanks to Leonard Siu for pull request)
+* Allow passing multi-parts with content-types not starting with "multipart/" but also containing "multipart+" such as "application/x-hub-multipart+xml" (issue 919)
+
+Change log 3.0.3 (2017-05-05)
+-----------------------------
+* Fixed issue with multi-word parameters that were treated as a list (issue 787) (thanks to britka for pull request)
+* Merges cookies of HttpServletResponse additionally to the Set-Cookie header (issue 791) (thanks to Andreas Gerstmayr for pull request)
+* Removed second negative from exception message "... no supported Content-Type was not specified... " (thanks to Mark N Broadhead for pull request)
+* Fixing EOFException for empty GZIP responses (issue 814)
+* Update groovy version to fix memory leaks (issue 735) (thanks to Nikolai Gladkov for pull request)
+* Improved cookie expiry parsing (issue 563) (thanks to Martin Aun for pull request)
+* Improved multipart log output to make it prettier (thanks to Andrey Smirnov for pull request)
+* Ignores spacing between content type and charset when validating content types (issue 804)
+* Allow specifying default charset (only applicable when HttpMultipartMode is not STRICT) that'll be used when sending multiparts (issue 844)
+
+Change log 3.0.2 (2017-01-20)
+-----------------------------
 * Don't join root and path with '.' if path starts with array indexing (thanks to feshbach for pull request)
 * Updated SSLConfig to allow keystore and truststore passwords to differ (thanks to mike42 for pull request)
 * SSLConfig#getKeyStore() was returning trustStore rather than keyStore (thanks to mike42 for pull request)

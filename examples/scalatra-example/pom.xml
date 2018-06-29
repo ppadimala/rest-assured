@@ -19,7 +19,7 @@
     <parent>
         <groupId>io.rest-assured.examples</groupId>
         <artifactId>example-parent</artifactId>
-        <version>3.0.2-SNAPSHOT</version>
+        <version>3.1.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,7 +29,7 @@
     <description>Scalatra service example that's used for integration testing rest-assured</description>
 
     <properties>
-        <scala.version>2.10.2</scala.version>
+        <scala.version>2.10.7</scala.version>
         <scalatra.scala.version>2.10</scalatra.scala.version>
         <scalatra.version>2.3.0</scalatra.version>
     </properties>

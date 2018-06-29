@@ -28,6 +28,7 @@ import static io.restassured.internal.assertion.AssertParameter.notNull
  * Specify an authentication scheme to use when sending a request.
  */
 class AuthenticationSpecificationImpl implements AuthenticationSpecification {
+  private static final String AUTHORIZATION_HEADER_NAME = "Authorization"
   private RequestSpecification requestSpecification;
 
   AuthenticationSpecificationImpl(RequestSpecification requestSpecification) {
@@ -46,6 +47,23 @@ class AuthenticationSpecificationImpl implements AuthenticationSpecification {
     notNull password, "password"
 
     requestSpecification.authenticationScheme = new BasicAuthScheme(userName: userName, password: password)
+    return requestSpecification
+  }
+
+  /**
+   * Use NTLM authentication.
+   *
+   * @param userName The user name.
+   * @param password The password.
+   * @return The request builder
+   */
+  def RequestSpecification ntlm(String userName, String password, String workstation, String domain) {
+    notNull userName, "userName"
+    notNull password, "password"
+    notNull workstation, "workstation"
+    notNull domain, "domain"
+
+    requestSpecification.authenticationScheme = new NTLMAuthScheme(userName: userName, password: password, workstation: workstation, domain: domain)
     return requestSpecification
   }
 
@@ -150,6 +168,7 @@ class AuthenticationSpecificationImpl implements AuthenticationSpecification {
   def RequestSpecification none() {
     requestSpecification.authenticationScheme = new ExplicitNoAuthScheme();
     requestSpecification.filters.removeAll { it instanceof AuthFilter }
+    requestSpecification.removeHeader(AUTHORIZATION_HEADER_NAME)
     return requestSpecification
   }
 

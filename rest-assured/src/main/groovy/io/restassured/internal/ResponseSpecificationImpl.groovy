@@ -24,6 +24,7 @@ import io.restassured.http.ContentType
 import io.restassured.internal.MapCreator.CollisionStrategy
 import io.restassured.internal.log.LogRepository
 import io.restassured.internal.util.MatcherErrorMessageBuilder
+import io.restassured.matcher.DetailedCookieMatcher
 import io.restassured.parsing.Parser
 import io.restassured.response.Response
 import io.restassured.specification.*
@@ -190,7 +191,7 @@ class ResponseSpecificationImpl implements FilterableResponseSpecification {
     validateResponseIfRequired {
       expectedCookies.each { cookieName, matcher ->
         if (matcher instanceof List) {
-          match.each {
+          matcher.each {
             cookieAssertions << new CookieMatcher(cookieName: cookieName, matcher: it instanceof Matcher ? it : equalTo(it))
           }
         } else {
@@ -214,6 +215,15 @@ class ResponseSpecificationImpl implements FilterableResponseSpecification {
     notNull expectedValueMatcher, "expectedValueMatcher"
     validateResponseIfRequired {
       cookieAssertions << new CookieMatcher(cookieName: cookieName, matcher: expectedValueMatcher)
+    }
+    this;
+  }
+
+  def ResponseSpecification cookie(String cookieName, DetailedCookieMatcher detailedCookieMatcher) {
+    notNull cookieName, "cookieName"
+    notNull detailedCookieMatcher, "cookieMatcher"
+    validateResponseIfRequired {
+      cookieAssertions << new DetailedCookieAssertion(cookieName: cookieName, matcher: detailedCookieMatcher)
     }
     this;
   }
@@ -260,14 +270,16 @@ class ResponseSpecificationImpl implements FilterableResponseSpecification {
     notNull(key, "key")
     notNull(matcher, "matcher")
 
-    def mergedPath = mergeKeyWithRootPath(key)
-    mergedPath = applyArguments(mergedPath, arguments)
+    def originalMergedPath = mergeKeyWithRootPath(key)
+    def mergedPath = applyArguments(originalMergedPath, arguments)
     validateResponseIfRequired {
       bodyMatchers << new BodyMatcher(key: mergedPath, matcher: matcher, rpr: rpr)
       if (additionalKeyMatcherPairs?.length > 0) {
         def pairs = MapCreator.createMapFromObjects(CollisionStrategy.MERGE, additionalKeyMatcherPairs)
         pairs.each { matchingKey, hamcrestMatcher ->
-          def keyWithRoot = mergeKeyWithRootPath(matchingKey)
+          // If matching key is instance of list (we assume it's a list of arguments) then we should simply return the merged path,
+          // otherwise merge the current path with the supplied key
+          def keyWithRoot = matchingKey instanceof List ? applyArguments(originalMergedPath, matchingKey) : mergeKeyWithRootPath(matchingKey)
           if (hamcrestMatcher instanceof List) {
             hamcrestMatcher.each { m ->
               bodyMatchers << new BodyMatcher(key: keyWithRoot, matcher: m, rpr: rpr)
@@ -500,7 +512,9 @@ class ResponseSpecificationImpl implements FilterableResponseSpecification {
             errors << [success: false, errorMessage: String.format("Expected content-type %s doesn't match actual content-type \"%s\".\n", contentType, actualContentType)]
           }
         } else if (contentType instanceof String) {
-          if (!StringUtils.startsWithIgnoreCase(actualContentType, contentType.toString())) {
+          def normalizedExpectedContentType = normalizeContentType(contentType.toString())
+          def normalizedActualContentType = normalizeContentType(actualContentType)
+          if (!StringUtils.startsWithIgnoreCase(normalizedActualContentType, normalizedExpectedContentType)) {
             errors << [success: false, errorMessage: String.format("Expected content-type \"%s\" doesn't match actual content-type \"%s\".\n", contentType, actualContentType)];
           }
         } else {
@@ -519,6 +533,10 @@ class ResponseSpecificationImpl implements FilterableResponseSpecification {
         }
       }
       errors
+    }
+
+    private String normalizeContentType(String actualContentType) {
+      StringUtils.replaceEach(actualContentType, [" ", "\t"] as String[], ["", ""] as String[])
     }
 
     private def validateStatusCodeAndStatusLine(Response response) {
@@ -559,8 +577,9 @@ class ResponseSpecificationImpl implements FilterableResponseSpecification {
       })
 
       validations.addAll(cookieAssertions.collect { matcher ->
-        def cookies = response.getHeaders().getValues("Set-Cookie")
-        matcher.validateCookie(cookies)
+        def headerWithCookieList = response.getHeaders().getValues("Set-Cookie")
+        def responseCookies = response.getDetailedCookies()
+        matcher.validateCookies(headerWithCookieList, responseCookies)
       })
       validations
     }

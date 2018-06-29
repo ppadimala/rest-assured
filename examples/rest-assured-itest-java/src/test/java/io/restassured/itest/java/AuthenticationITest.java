@@ -20,11 +20,11 @@ import io.restassured.RestAssured;
 import io.restassured.authentication.FormAuthConfig;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.LogConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.filter.log.LogDetail;
 import io.restassured.filter.session.SessionFilter;
 import io.restassured.itest.java.support.WithJetty;
 import io.restassured.specification.RequestSpecification;
-import io.restassured.config.RestAssuredConfig;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.junit.Test;
 
@@ -32,6 +32,7 @@ import java.io.PrintStream;
 import java.io.StringWriter;
 
 import static io.restassured.RestAssured.*;
+import static io.restassured.authentication.FormAuthConfig.formAuthConfig;
 import static io.restassured.config.SessionConfig.sessionConfig;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -112,7 +113,7 @@ public class AuthenticationITest extends WithJetty {
     @Test
     public void formAuthenticationWithAutoFormDetailsAndAutoCsrfDetection() throws Exception {
         given().
-                auth().form("John", "Doe", FormAuthConfig.formAuthConfig().withAutoDetectionOfCsrf()).
+                auth().form("John", "Doe", formAuthConfig().withAutoDetectionOfCsrf()).
         when().
                 get("/formAuthCsrf").
         then().
@@ -143,6 +144,17 @@ public class AuthenticationITest extends WithJetty {
     }
 
     @Test
+    public void formAuthenticationWithAdditionalFields() {
+        given().
+                auth().form("John", "Doe", formAuthConfig().withAdditionalFields("smquerydata", "smauthreason", "smagentname").withAdditionalField("postpreservationdata")).
+        when().
+                get("/formAuthAdditionalFields").
+        then().
+                statusCode(200).
+                body(equalTo("OK"));
+    }
+
+    @Test
     public void formAuthenticationWithCsrfAutoDetectionButSpecifiedFormDetails() throws Exception {
         given().
                 auth().form("John", "Doe", new FormAuthConfig("j_spring_security_check_with_csrf", "j_username", "j_password").withAutoDetectionOfCsrf()).
@@ -166,7 +178,7 @@ public class AuthenticationITest extends WithJetty {
                 statusCode(200).
                 body(equalTo("OK"));
 
-        assertThat(writer.toString(), equalTo("Request method:\tPOST\nRequest URI:\thttp://localhost:8080/j_spring_security_check\nProxy:\t\t\t<none>\nRequest params:\t<none>\nQuery params:\t<none>\nForm params:\tj_username=John\n\t\t\t\tj_password=Doe\nPath params:\t<none>\nMultiparts:\t\t<none>\nHeaders:\t\tAccept=*/*\n\t\t\t\tContent-Type=application/x-www-form-urlencoded; charset=" + RestAssured.config().getEncoderConfig().defaultContentCharset() + "\nCookies:\t\t<none>\nBody:\t\t\t<none>\nHTTP/1.1 200 OK\nContent-Type: text/plain;charset=utf-8\nSet-Cookie: jsessionid=1234\nContent-Length: 0\nServer: Jetty(9.3.2.v20150730)\n"));
+        assertThat(writer.toString(), equalTo("Request method:\tPOST\nRequest URI:\thttp://localhost:8080/j_spring_security_check\nProxy:\t\t\t<none>\nRequest params:\t<none>\nQuery params:\t<none>\nForm params:\tj_username=John\n\t\t\t\tj_password=Doe\nPath params:\t<none>\nHeaders:\t\tAccept=*/*\n\t\t\t\tContent-Type=application/x-www-form-urlencoded; charset=" + RestAssured.config().getEncoderConfig().defaultContentCharset() + "\nCookies:\t\t<none>\nMultiparts:\t\t<none>\nBody:\t\t\t<none>\nHTTP/1.1 200 OK\nContent-Type: text/plain;charset=utf-8\nSet-Cookie: jsessionid=1234\nContent-Length: 0\nServer: Jetty(9.3.2.v20150730)\n"));
     }
 
     @Test

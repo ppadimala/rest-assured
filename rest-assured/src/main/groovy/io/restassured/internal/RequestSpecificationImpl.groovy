@@ -87,7 +87,9 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
   private static final String CHARSET = "charset"
   private static final String ACCEPT_HEADER_NAME = "Accept"
   private static final String SSL = "SSL"
-  private static final String MULTIPART_CONTENT_TYPE_PREFIX = "multipart/"
+  private static final String MULTIPART = "multipart"
+  private static final String MULTIPART_CONTENT_TYPE_PREFIX_WITH_SLASH = MULTIPART + "/"
+  private static final String MULTIPART_CONTENT_TYPE_PREFIX_WITH_PLUS = MULTIPART + "+"
   private static final String TEMPLATE_START = "{"
   private static final String TEMPLATE_END = "}"
 
@@ -1459,26 +1461,33 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
     if (hasFormParams()) {
       convertFormParamsToMultiPartParams()
     }
-    
-    
+
     def contentTypeAsString = headers.getValue(CONTENT_TYPE)
     def ct = ContentTypeExtractor.getContentTypeWithoutCharset(contentTypeAsString)
-    if (!ct?.toLowerCase()?.startsWith(MULTIPART_CONTENT_TYPE_PREFIX)) {
-      throw new IllegalArgumentException("Content-Type $ct is not valid when using multiparts, it must start with \"$MULTIPART_CONTENT_TYPE_PREFIX\".");
+    def subType;
+    if (ct?.toLowerCase()?.startsWith(MULTIPART_CONTENT_TYPE_PREFIX_WITH_SLASH)) {
+      subType = substringAfter(ct, MULTIPART_CONTENT_TYPE_PREFIX_WITH_SLASH)
+    } else if (ct?.toLowerCase()?.contains(MULTIPART_CONTENT_TYPE_PREFIX_WITH_PLUS)) {
+      subType = substringBefore(substringAfter(ct, MULTIPART_CONTENT_TYPE_PREFIX_WITH_PLUS), "+")
+    } else {
+      throw new IllegalArgumentException("Content-Type $ct is not valid when using multiparts, it must start with \"$MULTIPART_CONTENT_TYPE_PREFIX_WITH_SLASH\" or contain \"$MULTIPART_CONTENT_TYPE_PREFIX_WITH_PLUS\".");
     }
 
-    def subType = substringAfter(ct, MULTIPART_CONTENT_TYPE_PREFIX)
     def charsetFromContentType = CharsetExtractor.getCharsetFromContentType(contentTypeAsString)
+    def charsetToUse = isBlank(charsetFromContentType) ? restAssuredConfig().getMultiPartConfig().defaultCharset() : charsetFromContentType
     def boundaryFromContentType = BoundaryExtractor.getBoundaryFromContentType(contentTypeAsString)
-    def String boundaryToUse = boundaryFromContentType ?: restAssuredConfig().getMultiPartConfig().defaultBoundary()
+    String boundaryToUse = boundaryFromContentType ?: restAssuredConfig().getMultiPartConfig().defaultBoundary()
     boundaryToUse = boundaryToUse ?: generateBoundary()
     if (!boundaryFromContentType) {
       removeHeader(CONTENT_TYPE) // there should only be one
       contentType(contentTypeAsString + "; boundary=\"" + boundaryToUse + "\"")
     }
-    
+
+    def multipartMode = httpClientConfig().httpMultipartMode()
+    // For "defaultCharset" to be taken into account we need to 
+
     http.encoders.putAt ct, { contentType, content ->
-      RestAssuredMultiPartEntity entity = new RestAssuredMultiPartEntity(subType, charsetFromContentType, httpClientConfig().httpMultipartMode(), boundaryToUse);
+      RestAssuredMultiPartEntity entity = new RestAssuredMultiPartEntity(subType, charsetToUse, multipartMode, boundaryToUse);
 
       multiParts.each {
         def body = it.contentBody
@@ -1490,8 +1499,8 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
     }
   }
 
-  private String generateBoundary() {
-    def alphabet = (('a'..'z')+('A'..'Z')+('0'..'9')+'-'+'_').join()
+  private static String generateBoundary() {
+    def alphabet = (('a'..'z') + ('A'..'Z') + ('0'..'9') + '-' + '_').join()
     def rand = new Random()
     def length = rand.nextInt(11) + 30
     (1..length).collect {
@@ -1503,7 +1512,7 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
     def allFormParams = mergeMapsAndRetainOrder(requestParameters, formParameters)
     allFormParams.each {
       if (it.value instanceof List) {
-        it.value.each { val -> 
+        it.value.each { val ->
           multiPart(it.key, val)
         }
       } else {
@@ -1519,12 +1528,13 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
     if (method.equals(GET.name())) {
       allQueryParams = mergeMapsAndRetainOrder(allQueryParams, formParameters)
     }
-    http.request(method, responseContentType) {
+    def hasBody = (requestBody != null)
+    http.request(method, responseContentType, hasBody) {
       uri.path = targetPath
 
       setRequestContentType(defineRequestContentTypeAsString(method))
 
-      if (requestBody != null) {
+      if (hasBody) {
         body = requestBody
       }
 
@@ -1580,7 +1590,7 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
     def contentType = headers.getValue(CONTENT_TYPE)
     if (contentType == null) {
       if (multiParts.size() > 0) {
-        contentType = MULTIPART_CONTENT_TYPE_PREFIX + restAssuredConfig().getMultiPartConfig().defaultSubtype()
+        contentType = MULTIPART_CONTENT_TYPE_PREFIX_WITH_SLASH + restAssuredConfig().getMultiPartConfig().defaultSubtype()
       } else if (GET.name().equals(method) && !formParameters.isEmpty()) {
         contentType = URLENC
       } else if (requestBody == null) {
@@ -1604,7 +1614,7 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
   }
 
   private boolean shouldAppendCharsetToContentType(contentType) {
-    contentType != null && !startsWith(contentType.toString(), MULTIPART_CONTENT_TYPE_PREFIX) && restAssuredConfig().encoderConfig.shouldAppendDefaultContentCharsetToContentTypeIfUndefined() && !containsIgnoreCase(contentType.toString(), CHARSET)
+    contentType != null && !(startsWith(contentType.toString(), MULTIPART_CONTENT_TYPE_PREFIX_WITH_SLASH) || contains(contentType.toString(), MULTIPART_CONTENT_TYPE_PREFIX_WITH_PLUS)) && restAssuredConfig().encoderConfig.shouldAppendDefaultContentCharsetToContentTypeIfUndefined() && !containsIgnoreCase(contentType.toString(), CHARSET)
   }
 
   private String getTargetURI(String path) {
@@ -1709,7 +1719,7 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
     restAssuredConfig = config ?: new RestAssuredConfig()
 
     // Sort filters by order
-    filters = filters.toSorted {f1, f2 -> getFilterOrder(f1) <=> getFilterOrder(f2)}
+    filters = filters.toSorted { f1, f2 -> getFilterOrder(f1) <=> getFilterOrder(f2) }
 
     // Add timing filter if it has not been added manually
     if (!filters*.getClass().any { TimingFilter.class.isAssignableFrom(it) }) {
@@ -2102,7 +2112,7 @@ class RequestSpecificationImpl implements FilterableRequestSpecification, Groovy
         Object val = headers1.get(key);
         if (val == null) {
           reqMethod.removeHeaders(key.toString())
-        } else if (!key.toString().equalsIgnoreCase(CONTENT_TYPE) || !val.toString().startsWith(MULTIPART_CONTENT_TYPE_PREFIX)) {
+        } else if (!key.toString().equalsIgnoreCase(CONTENT_TYPE) || !val.toString().startsWith(MULTIPART_CONTENT_TYPE_PREFIX_WITH_SLASH)) {
           // Don't overwrite multipart header because HTTP Client have added boundary
           def keyAsString = key.toString()
           if (val instanceof Collection) {

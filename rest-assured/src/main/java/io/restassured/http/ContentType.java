@@ -66,7 +66,7 @@ public enum ContentType {
      * <li><code>text/javascript</code></li>
      * </ul>
      */
-    JSON("application/json", "application/javascript", "text/javascript"),
+    JSON("application/json", "application/javascript", "text/javascript", "text/json"),
     /**
      * <ul>
      * <li><code>application/xml</code></li>
@@ -164,6 +164,12 @@ public enum ContentType {
             foundContentType = TEXT;
         } else if (contains(HTML.ctStrings, contentType) || endsWithIgnoreCase(contentType, PLUS_HTML)) {
             foundContentType = HTML;
+        } else if (contains(URLENC.ctStrings, contentType)) {
+            foundContentType = URLENC;
+        } else if (contains(BINARY.ctStrings, contentType)) {
+            foundContentType = BINARY;
+        } else if (contains(ANY.ctStrings, contentType)) {
+            foundContentType = ANY;
         } else {
             foundContentType = null;
         }

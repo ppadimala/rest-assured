@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/rest-assured/rest-assured.svg)](https://travis-ci.org/rest-assured/rest-assured)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.rest-assured/rest-assured/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.rest-assured/rest-assured)
-[![Javadoc](https://javadoc-emblem.rhcloud.com/doc/io.rest-assured/rest-assured/badge.svg)](http://www.javadoc.io/doc/io.rest-assured/rest-assured)
+[![Javadoc](https://javadoc-badge.appspot.com/io.rest-assured/rest-assured.svg)](http://www.javadoc.io/doc/io.rest-assured/rest-assured)
 
 
 Testing and validation of REST services in Java is harder than in dynamic languages 
@@ -11,8 +11,9 @@ languages into the Java domain.
 
 
 ## News 
-* 2016-09-21: REST Assured [3.0.1](http://dl.bintray.com/johanhaleby/generic/rest-assured-3.0.1-dist.zip) is released. This is a maintence release with several bug fixes. See [change log](https://raw.githubusercontent.com/jayway/rest-assured/master/changelog.txt) for details.
-* 2016-06-03: REST Assured [3.0.0](http://dl.bintray.com/johanhaleby/generic/rest-assured-3.0.0-dist.zip) is released. This is a new major release with lots of updates and new features such as the ability to use [any HTTP method](https://github.com/rest-assured/rest-assured/wiki/Usage#invoking-http-resources), all HTTP methods now supports multipart uploads, improved error messages, improved JsonPath etc. **Note** The package name has changed to `io.restassured` and the groupId has changed to `io.rest-assured`. Please see [release notes](https://github.com/rest-assured/rest-assured/wiki/ReleaseNotes30) and [getting started guide](https://github.com/rest-assured/rest-assured/wiki/GettingStarted) for more details.
+* 2018-04-20: REST Assured [3.1.0](http://dl.bintray.com/johanhaleby/generic/rest-assured-3.1.0-dist.zip) is released. This release includes fixes and improvements such as ability to resolve and include additional parameters in a form authentication request (see [here](https://github.com/rest-assured/rest-assured/wiki/Usage#include-additional-fields-in-form-authentication) for example) and ability to [extract values](https://github.com/rest-assured/rest-assured/wiki/Usage#querying-requestspecification) from a `RequestSpecification`. Please see [release notes](https://github.com/rest-assured/rest-assured/wiki/ReleaseNotes31) and [getting started guide](https://github.com/rest-assured/rest-assured/wiki/GettingStarted) for more details.
+* 2018-02-09: REST Assured [3.0.7](http://dl.bintray.com/johanhaleby/generic/rest-assured-3.0.7-dist.zip) is released with bug fixes and improvements. See [change log](https://raw.githubusercontent.com/rest-assured/rest-assured/master/changelog.txt) for details.
+* 2017-11-23: REST Assured [3.0.6](http://dl.bintray.com/johanhaleby/generic/rest-assured-3.0.6-dist.zip) is released with support for Java 9.
 
 [Older News](https://github.com/rest-assured/rest-assured/wiki/OldNews)
 
@@ -79,11 +80,11 @@ REST Assured supports any HTTP method but has explicit support for *POST*, *GET*
 * [Getting started](https://github.com/rest-assured/rest-assured/wiki/GettingStarted)
 * [Downloads](https://github.com/rest-assured/rest-assured/wiki/Downloads)
 * [Usage Guide](https://github.com/rest-assured/rest-assured/wiki/Usage) (click [here](https://github.com/rest-assured/rest-assured/wiki/Usage_Legacy) for legacy documentation)
-* [Javadoc](http://www.javadoc.io/doc/io.rest-assured/rest-assured/3.0.1)
-* [Rest Assured Javadoc](http://static.javadoc.io/io.rest-assured/rest-assured/3.0.1/io/restassured/RestAssured.html)
-* [Rest AssuredMockMvc Javadoc](http://static.javadoc.io/io.rest-assured/spring-mock-mvc/3.0.1/io/restassured/module/mockmvc/RestAssuredMockMvc.html)
-* [XmlPath Javadoc](http://static.javadoc.io/io.rest-assured/xml-path/3.0.1/io/restassured/path/xml/XmlPath.html)
-* [JsonPath Javadoc](http://static.javadoc.io/io.rest-assured/json-path/3.0.1/io/restassured/path/json/JsonPath.html)
+* [Javadoc](http://www.javadoc.io/doc/io.rest-assured/rest-assured/3.1.0)
+* [Rest Assured Javadoc](http://static.javadoc.io/io.rest-assured/rest-assured/3.1.0/io/restassured/RestAssured.html)
+* [Rest AssuredMockMvc Javadoc](http://static.javadoc.io/io.rest-assured/spring-mock-mvc/3.1.0/io/restassured/module/mockmvc/RestAssuredMockMvc.html)
+* [XmlPath Javadoc](http://static.javadoc.io/io.rest-assured/xml-path/3.1.0/io/restassured/path/xml/XmlPath.html)
+* [JsonPath Javadoc](http://static.javadoc.io/io.rest-assured/json-path/3.1.0/io/restassured/path/json/JsonPath.html)
 * [Release Notes](https://github.com/rest-assured/rest-assured/wiki/ReleaseNotes)
 * [FAQ](https://github.com/rest-assured/rest-assured/wiki/FAQ)
 
@@ -92,5 +93,5 @@ Join the mailing list at our [Google group](http://groups.google.com/group/rest-
 
 ## Links
 * [Change log](https://github.com/rest-assured/rest-assured/raw/master/changelog.txt)
-* REST Assured on [Ohloh](https://www.ohloh.net/p/rest-assured)
+* REST Assured on [openhub](https://www.openhub.net/p/rest-assured)
 * [Mailing list](http://groups.google.com/group/rest-assured) for questions and support
